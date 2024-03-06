@@ -21,6 +21,12 @@ const gui = new GUI();
 
 type Palo = 'P' | 'C' | 'T' | 'D';
 const palos: Palo[] = ['P', 'C', 'T', 'D'];
+const palo2hex: Record<Palo, string> = {
+  P: "#FC4250",
+  C: "#69D83A",
+  T: "#F4D837",
+  D: "#4CA4F2"
+};
 
 class AbstractPlato {
   constructor(
@@ -30,7 +36,7 @@ class AbstractPlato {
 }
 
 class PlacedPlato {
-  static size: Vec2 = new Vec2(200, 150);
+  static size: Vec2 = new Vec2(180, 150);
   public insides: (PlacedPlato | null)[];
   constructor(
     public blueprint: AbstractPlato,
@@ -62,16 +68,26 @@ class PlacedPlato {
       ctx.fill();
       ctx.stroke();
       ctx.beginPath();
+      ctx.fillStyle = palo2hex[x.color];
+      drawCircle(this.pos.add(new Vec2(30 + k * 60, 71)), 20);
+      ctx.fill();
+      ctx.beginPath();
       ctx.fillStyle = "black";
-      fillText(x.scale.toString() + x.color, this.pos.add(new Vec2(10 + k * 60, 90)));
+      fillText(x.scale.toString(), this.pos.add(new Vec2(21 + k * 60, 82)));
       if (this.insides[k] !== null) {
         fillText(this.insides[k]!.score().toString().padStart(2), this.pos.add(new Vec2(12 + k * 60, 130)));
-        // fillText("22", this.pos.add(new Vec2(12 + k * 60, 130)));
       }
     });
     ctx.beginPath();
+    ctx.fillStyle = palo2hex[this.blueprint.result_color];
+    rect(this.pos.add(new Vec2(10, 10)), new Vec2(160, 30));
+    ctx.fill();
+
+    ctx.textAlign = "center";
+    ctx.beginPath();
     ctx.fillStyle = "black";
-    fillText(this.score().toString() + this.blueprint.result_color, this.pos.add(new Vec2(20, 40)));
+    fillText(this.score().toString(), this.pos.add(new Vec2(90, 37)));
+    ctx.textAlign = "left";
   }
 }
 
