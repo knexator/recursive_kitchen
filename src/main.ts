@@ -158,7 +158,7 @@ function every_frame(cur_timestamp: number) {
     if (hovered_index === -1) hovered_index = null;
     let valid_index = (hovered !== null) && (hovered_index !== null) && (hovered.insides[hovered_index] === null) && (hovered.blueprint.slots[hovered_index].color === interaction_state.grabbed.blueprint.result_color);
     if (!input.mouse.isDown(MouseButton.Left)) {
-      if (hovered !== null && hovered_index !== null) {
+      if (hovered !== null && hovered_index !== null && valid_index) {
         hovered.insides[hovered_index] = interaction_state.grabbed;
         placed_platos = placed_platos.filter(x => x !== interaction_state.grabbed);
       }
