@@ -133,7 +133,7 @@ function every_frame(cur_timestamp: number) {
       x.draw(x === hovered ? "orange" : "white", null);
     });
   } else {
-    interaction_state.grabbed.pos = raw_mouse_pos;
+    interaction_state.grabbed.pos = Vec2.lerp(interaction_state.grabbed.pos, raw_mouse_pos, .3);
     let hovered: PlacedPlato | null = findLast(placed_platos, plato => plato !== interaction_state.grabbed && inRect(raw_mouse_pos, plato.pos, PlacedPlato.size)) ?? null;
     let hovered_index: number | null = hovered?.blueprint.slots.findIndex((_, k) => {
       if (hovered === null) throw new Error();
