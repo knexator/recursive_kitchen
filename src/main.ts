@@ -16,11 +16,13 @@ gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
   single_value_ingredients: true,
+  recipes_in_deck: false,
   reset: reset,
 };
 
 const gui = new GUI();
 gui.add(CONFIG, "single_value_ingredients");
+gui.add(CONFIG, "recipes_in_deck");
 gui.add(CONFIG, "reset");
 
 type Palo = 'P' | 'C' | 'T' | 'D';
@@ -123,16 +125,23 @@ function reset() {
 
   let mazo: PlacedPlato[];
   if (CONFIG.single_value_ingredients) {
-    mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], new Vec2(50 + k, 600 + k)));
+    mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], Vec2.zero));
   } else {
     mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(randomChoice(base_recipes), new Vec2(50 + k, 600 + k)));
+  }
+  if (CONFIG.recipes_in_deck) {
+    mazo = mazo.concat(complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, Vec2.zero))));
   }
   mazo = shuffle(mazo);
   mazo.forEach((c, k) => {
     c.pos = new Vec2(50 + k, 600 + k);
   });
-  placed_platos = complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, new Vec2(100 + i * (PlacedPlato.size.x + 20), 50 + j * (PlacedPlato.size.y + 20)))))
-    .concat(mazo);
+  if (CONFIG.recipes_in_deck) {
+    placed_platos = mazo;
+  } else {
+    placed_platos = complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, new Vec2(100 + i * (PlacedPlato.size.x + 20), 50 + j * (PlacedPlato.size.y + 20)))))
+      .concat(mazo);
+  }
 
   interaction_state = { grabbed: null };
 }
