@@ -139,10 +139,22 @@ function every_frame(cur_timestamp: number) {
   if (interaction_state.grabbed === null) {
     let hovered: PlacedPlato | null = findLast(placed_platos, plato => inRect(raw_mouse_pos, plato.pos, PlacedPlato.size)) ?? null;
     if (hovered && input.mouse.wasPressed(MouseButton.Left)) {
-      interaction_state.grabbed = hovered;
-      // move to top of stack
-      placed_platos = placed_platos.filter(x => x !== interaction_state.grabbed);
-      placed_platos.push(interaction_state.grabbed);
+      let hovered_index: number | null = hovered.blueprint.slots.findIndex((_, k) => {
+        if (hovered === null) throw new Error();
+        return hovered.insides[k] !== null && inRect(raw_mouse_pos, hovered.pos.add(new Vec2(10 + k * 60, 100)), Vec2.both(40));
+      }) ?? null;
+      if (hovered_index === -1) hovered_index = null;
+      if (hovered_index === null) {
+        interaction_state.grabbed = hovered;
+        // move to top of stack
+        placed_platos = placed_platos.filter(x => x !== interaction_state.grabbed);
+        placed_platos.push(interaction_state.grabbed);
+      } else {
+        interaction_state.grabbed = hovered.insides[hovered_index]!;
+        interaction_state.grabbed.pos = raw_mouse_pos;
+        placed_platos.push(interaction_state.grabbed);
+        hovered.insides[hovered_index] = null;
+      }
     }
     ctx.strokeStyle = "black";
     placed_platos.forEach(x => {
