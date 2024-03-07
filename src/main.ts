@@ -96,30 +96,16 @@ class PlacedPlato {
   }
 }
 
-let base_recipes = palos.map(p => new AbstractPlato(p, [], 1));
-let complex_recipes = (() => {
-  let cards = fromCount(12, k => ({ color: palos[k % 4], scale: 1 + Math.floor(k / 4) }));
-  cards = shuffle(cards);
-  let result: AbstractPlato[] = [];
-  for (let k = 0; k < 4; k++) {
-    result.push(new AbstractPlato(palos[k], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]], 1));
-  }
-  return result;
-})();
-
-let mazo: PlacedPlato[] = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], new Vec2(50 + k, 600 + k)));
-mazo = shuffle(mazo);
-mazo.forEach((c, k) => {
-  c.pos = new Vec2(50 + k, 600 + k);
-});
-let placed_platos: PlacedPlato[] = complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, new Vec2(100 + i * (PlacedPlato.size.x + 20), 50 + j * (PlacedPlato.size.y + 20)))))
-  .concat(mazo);
+let placed_platos: PlacedPlato[];
 
 // var interaction_state: {tag: 'idle'}
 //   | {tag: 'grabbing', carta: PlacedPlato} = {tag: 'idle'};
 let interaction_state = { grabbed: null as PlacedPlato | null };
 
 function reset() {
+  let base_recipes: AbstractPlato[];
+  let complex_recipes: AbstractPlato[];
+
   if (CONFIG.single_value_ingredients) {
     base_recipes = palos.map(p => new AbstractPlato(p, [], 1));
   } else {
@@ -135,7 +121,12 @@ function reset() {
     return result;
   })();
 
-  mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], new Vec2(50 + k, 600 + k)));
+  let mazo: PlacedPlato[];
+  if (CONFIG.single_value_ingredients) {
+    mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], new Vec2(50 + k, 600 + k)));
+  } else {
+    mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(randomChoice(base_recipes), new Vec2(50 + k, 600 + k)));
+  }
   mazo = shuffle(mazo);
   mazo.forEach((c, k) => {
     c.pos = new Vec2(50 + k, 600 + k);
@@ -146,7 +137,7 @@ function reset() {
   interaction_state = { grabbed: null };
 }
 
- reset();
+reset();
 
 let last_timestamp = 0;
 // main loop; game logic lives here
