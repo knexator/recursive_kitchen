@@ -15,10 +15,12 @@ const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
+  single_value_ingredients: true,
   reset: reset,
 };
 
 const gui = new GUI();
+gui.add(CONFIG, "single_value_ingredients");
 gui.add(CONFIG, "reset");
 
 type Palo = 'P' | 'C' | 'T' | 'D';
@@ -34,6 +36,7 @@ class AbstractPlato {
   constructor(
     public result_color: Palo,
     public slots: { color: Palo, scale: number }[],
+    public base_score: number,
   ) { }
 }
 
@@ -48,7 +51,7 @@ class PlacedPlato {
   }
 
   score(): number {
-    let result = 1;
+    let result = this.blueprint.base_score;
     for (const [placed, slot] of zip2(this.insides, this.blueprint.slots)) {
       if (placed !== null) {
         result += placed.score() * slot.scale;
@@ -93,13 +96,13 @@ class PlacedPlato {
   }
 }
 
-let base_recipes = palos.map(p => new AbstractPlato(p, []));
+let base_recipes = palos.map(p => new AbstractPlato(p, [], 1));
 let complex_recipes = (() => {
   let cards = fromCount(12, k => ({ color: palos[k % 4], scale: 1 + Math.floor(k / 4) }));
   cards = shuffle(cards);
   let result: AbstractPlato[] = [];
   for (let k = 0; k < 4; k++) {
-    result.push(new AbstractPlato(palos[k], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]]));
+    result.push(new AbstractPlato(palos[k], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]], 1));
   }
   return result;
 })();
@@ -117,13 +120,17 @@ let placed_platos: PlacedPlato[] = complex_recipes.flatMap((x, i) => fromCount(3
 let interaction_state = { grabbed: null as PlacedPlato | null };
 
 function reset() {
-  base_recipes = palos.map(p => new AbstractPlato(p, []));
+  if (CONFIG.single_value_ingredients) {
+    base_recipes = palos.map(p => new AbstractPlato(p, [], 1));
+  } else {
+    base_recipes = palos.flatMap(p => fromCount(3, k => new AbstractPlato(p, [], k + 1)));
+  }
   complex_recipes = (() => {
     let cards = fromCount(12, k => ({ color: palos[k % 4], scale: 1 + Math.floor(k / 4) }));
     cards = shuffle(cards);
     let result: AbstractPlato[] = [];
     for (let k = 0; k < 4; k++) {
-      result.push(new AbstractPlato(palos[k], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]]));
+      result.push(new AbstractPlato(palos[k], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]], 1));
     }
     return result;
   })();
@@ -138,6 +145,8 @@ function reset() {
 
   interaction_state = { grabbed: null };
 }
+
+ reset();
 
 let last_timestamp = 0;
 // main loop; game logic lives here
