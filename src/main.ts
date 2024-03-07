@@ -15,9 +15,11 @@ const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
+  reset: reset,
 };
 
 const gui = new GUI();
+gui.add(CONFIG, "reset");
 
 type Palo = 'P' | 'C' | 'T' | 'D';
 const palos: Palo[] = ['P', 'C', 'T', 'D'];
@@ -91,8 +93,8 @@ class PlacedPlato {
   }
 }
 
-const base_recipes = palos.map(p => new AbstractPlato(p, []));
-const complex_recipes = (() => {
+let base_recipes = palos.map(p => new AbstractPlato(p, []));
+let complex_recipes = (() => {
   let cards = fromCount(12, k => ({ color: palos[k % 4], scale: 1 + Math.floor(k / 4) }));
   cards = shuffle(cards);
   let result: AbstractPlato[] = [];
@@ -102,19 +104,40 @@ const complex_recipes = (() => {
   return result;
 })();
 
-const recipes: AbstractPlato[] = [...base_recipes, ...complex_recipes];
-
-var mazo: PlacedPlato[] = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], new Vec2(50 + k, 600 + k)));
+let mazo: PlacedPlato[] = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], new Vec2(50 + k, 600 + k)));
 mazo = shuffle(mazo);
 mazo.forEach((c, k) => {
   c.pos = new Vec2(50 + k, 600 + k);
 });
-var placed_platos: PlacedPlato[] = complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, new Vec2(100 + i * (PlacedPlato.size.x + 20), 50 + j * (PlacedPlato.size.y + 20)))))
+let placed_platos: PlacedPlato[] = complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, new Vec2(100 + i * (PlacedPlato.size.x + 20), 50 + j * (PlacedPlato.size.y + 20)))))
   .concat(mazo);
 
 // var interaction_state: {tag: 'idle'}
 //   | {tag: 'grabbing', carta: PlacedPlato} = {tag: 'idle'};
-var interaction_state = { grabbed: null as PlacedPlato | null };
+let interaction_state = { grabbed: null as PlacedPlato | null };
+
+function reset() {
+  base_recipes = palos.map(p => new AbstractPlato(p, []));
+  complex_recipes = (() => {
+    let cards = fromCount(12, k => ({ color: palos[k % 4], scale: 1 + Math.floor(k / 4) }));
+    cards = shuffle(cards);
+    let result: AbstractPlato[] = [];
+    for (let k = 0; k < 4; k++) {
+      result.push(new AbstractPlato(palos[k], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]]));
+    }
+    return result;
+  })();
+
+  mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], new Vec2(50 + k, 600 + k)));
+  mazo = shuffle(mazo);
+  mazo.forEach((c, k) => {
+    c.pos = new Vec2(50 + k, 600 + k);
+  });
+  placed_platos = complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, new Vec2(100 + i * (PlacedPlato.size.x + 20), 50 + j * (PlacedPlato.size.y + 20)))))
+    .concat(mazo);
+
+  interaction_state = { grabbed: null };
+}
 
 let last_timestamp = 0;
 // main loop; game logic lives here
