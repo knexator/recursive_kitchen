@@ -18,6 +18,7 @@ const CONFIG = {
   single_value_ingredients: true,
   recipes_in_deck: false,
   unique_recipes: false,
+  three_palos: false,
   reset: reset,
 };
 
@@ -25,13 +26,14 @@ const gui = new GUI();
 gui.add(CONFIG, "single_value_ingredients");
 gui.add(CONFIG, "recipes_in_deck");
 gui.add(CONFIG, "unique_recipes");
+gui.add(CONFIG, "three_palos");
 gui.add(CONFIG, "reset");
 
 type Palo = 'P' | 'C' | 'T' | 'D';
 const palos: Palo[] = ['P', 'C', 'T', 'D'];
 const palo2hex: Record<Palo, string> = {
-  P: "#FC4250",
-  C: "#69D83A",
+  P: "#69D83A",
+  C: "#FC4250",
   T: "#F4D837",
   D: "#4CA4F2"
 };
@@ -110,19 +112,21 @@ function reset() {
   let base_recipes: AbstractPlato[];
   let complex_recipes: AbstractPlato[];
 
+  let palos2 = CONFIG.three_palos ? palos.slice(1) : palos;
+
   if (CONFIG.single_value_ingredients) {
-    base_recipes = palos.map(p => new AbstractPlato(p, [], 1));
+    base_recipes = palos2.map(p => new AbstractPlato(p, [], 1));
   } else {
-    base_recipes = palos.flatMap(p => fromCount(3, k => new AbstractPlato(p, [], k + 1)));
+    base_recipes = palos2.flatMap(p => fromCount(3, k => new AbstractPlato(p, [], k + 1)));
   }
   complex_recipes = CONFIG.unique_recipes
-    ? fromCount(12, _ => new AbstractPlato(randomChoice(palos), fromCount(3, _ => ({ color: randomChoice(palos), scale: randomInt(1, 4) })), 1))
+    ? fromCount(12, _ => new AbstractPlato(randomChoice(palos2), fromCount(3, _ => ({ color: randomChoice(palos2), scale: randomInt(1, 4) })), 1))
     : (() => {
-      let cards = fromCount(12, k => ({ color: palos[k % 4], scale: 1 + Math.floor(k / 4) }));
+      let cards = fromCount(12, k => ({ color: palos2[k % palos2.length], scale: 1 + Math.floor(k / 4) }));
       cards = shuffle(cards);
       let result: AbstractPlato[] = [];
       for (let k = 0; k < 4; k++) {
-        result.push(new AbstractPlato(palos[k], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]], 1));
+        result.push(new AbstractPlato(palos2[k % palos2.length], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]], 1));
       }
       return result;
     })();
