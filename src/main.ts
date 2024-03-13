@@ -139,9 +139,9 @@ function reset() {
   }
   if (CONFIG.recipes_in_deck) {
     if (CONFIG.unique_recipes) {
-      mazo = mazo.concat(complex_recipes.flatMap(x => fromCount(3, _ => new PlacedPlato(x, Vec2.zero))));
-    } else {
       mazo = mazo.concat(complex_recipes.map(x => new PlacedPlato(x, Vec2.zero)));
+    } else {
+      mazo = mazo.concat(complex_recipes.flatMap(x => fromCount(3, _ => new PlacedPlato(x, Vec2.zero))));
     }
   }
   mazo = shuffle(mazo);
