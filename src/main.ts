@@ -94,10 +94,10 @@ class PlacedPlato {
     rect(this.pos.add(new Vec2(10, 10)), new Vec2(160, 30));
     ctx.fill();
 
-    ctx.textAlign = "center";
+    ctx.textAlign = "left";
     ctx.beginPath();
     ctx.fillStyle = "black";
-    fillText(this.score().toString(), this.pos.add(new Vec2(90, 37)));
+    fillText(this.score().toString(), this.pos.add(new Vec2(20, 37)));
     ctx.textAlign = "left";
   }
 }
