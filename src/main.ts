@@ -279,8 +279,8 @@ function every_frame(cur_timestamp: number) {
   animation_id = requestAnimationFrame(every_frame);
 }
 
-type AnimCallback = (dt: number) => boolean;
-let anims: AnimCallback[] = [];
+// type AnimCallback = (dt: number) => boolean;
+// let anims: AnimCallback[] = [];
 
 
 function toTop(plato: PlacedPlato): void {
