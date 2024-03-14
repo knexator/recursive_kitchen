@@ -223,6 +223,9 @@ function every_frame(cur_timestamp: number) {
         placed_platos.push(interaction_state.grabbed);
         hovered.insides[hovered_index] = null;
       }
+    } else if (hovered && input.mouse.wasPressed(MouseButton.Right)) {
+      hovered.pos = new Vec2(1300, 100).add(Vec2.fromTurns(Math.random()).scale(20));
+      toTop(hovered);
     }
     ctx.strokeStyle = "black";
     placed_platos.forEach(x => {
@@ -264,6 +267,9 @@ function every_frame(cur_timestamp: number) {
         while (placed_platos.some(x => new_pos.sub(x.pos).mag() < 100)) {
           new_pos = new_pos.addX(200);
         }
+        // anims.push(dt => {
+        //   return false;
+        // });
         next_card.pos = new_pos;
         toTop(next_card);
       }
@@ -272,6 +278,10 @@ function every_frame(cur_timestamp: number) {
 
   animation_id = requestAnimationFrame(every_frame);
 }
+
+type AnimCallback = (dt: number) => boolean;
+let anims: AnimCallback[] = [];
+
 
 function toTop(plato: PlacedPlato): void {
   // move to top of stack
