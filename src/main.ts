@@ -19,6 +19,7 @@ const CONFIG = {
   recipes_in_deck: false,
   unique_recipes: false,
   three_palos: false,
+  all_multipliers_one: false,
   reset: reset,
 };
 
@@ -27,6 +28,7 @@ gui.add(CONFIG, "single_value_ingredients");
 gui.add(CONFIG, "recipes_in_deck");
 gui.add(CONFIG, "unique_recipes");
 gui.add(CONFIG, "three_palos");
+gui.add(CONFIG, "all_multipliers_one");
 gui.add(CONFIG, "reset");
 
 type Palo = 'P' | 'C' | 'T' | 'D';
@@ -43,7 +45,11 @@ class AbstractPlato {
     public result_color: Palo,
     public slots: { color: Palo, scale: number }[],
     public base_score: number,
-  ) { }
+  ) { 
+    if (CONFIG.all_multipliers_one) {
+      this.slots = slots.map(({color, scale}) => ({color, scale: 1}));
+    }
+  }
 }
 
 class PlacedPlato {
@@ -117,7 +123,7 @@ function reset() {
   if (CONFIG.single_value_ingredients) {
     base_recipes = palos2.map(p => new AbstractPlato(p, [], 1));
   } else {
-    base_recipes = palos2.flatMap(p => fromCount(3, k => new AbstractPlato(p, [], k + 1)));
+    base_recipes = palos2.flatMap(p => fromCount(4, k => new AbstractPlato(p, [], k + 1)));
   }
   complex_recipes = CONFIG.unique_recipes
     ? fromCount(12, _ => new AbstractPlato(randomChoice(palos2), fromCount(3, _ => ({ color: randomChoice(palos2), scale: randomInt(1, 4) })), 1))
