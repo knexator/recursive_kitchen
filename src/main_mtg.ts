@@ -45,9 +45,9 @@ class AbstractPlato {
     public result_color: Palo,
     public slots: { color: Palo, scale: number }[],
     public base_score: number,
-  ) {
+  ) { 
     if (CONFIG.all_multipliers_one) {
-      this.slots = slots.map(({ color, scale }) => ({ color, scale: 1 }));
+      this.slots = slots.map(({color, scale}) => ({color, scale: 1}));
     }
   }
 }
@@ -90,11 +90,9 @@ class PlacedPlato {
       ctx.fill();
       ctx.beginPath();
       ctx.fillStyle = "black";
-      if (!CONFIG.all_multipliers_one) {
-        fillText(x.scale.toString(), this.pos.add(new Vec2(21 + k * 60, 82)));
-        if (this.insides[k] !== null) {
-          fillText(this.insides[k]!.score().toString().padStart(2), this.pos.add(new Vec2(12 + k * 60, 130)));
-        }
+      fillText(x.scale.toString(), this.pos.add(new Vec2(21 + k * 60, 82)));
+      if (this.insides[k] !== null) {
+        fillText(this.insides[k]!.score().toString().padStart(2), this.pos.add(new Vec2(12 + k * 60, 130)));
       }
     });
     ctx.beginPath();
@@ -288,7 +286,7 @@ function every_frame(cur_timestamp: number) {
 function toTop(plato: PlacedPlato): void {
   // move to top of stack
   placed_platos = placed_platos.filter(x => x !== plato);
-  placed_platos.push(plato);
+  // placed_platos.push(plato);
 }
 
 ////// library stuff

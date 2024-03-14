@@ -34,11 +34,14 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
     build: {
       outDir: '../dist',
       emptyOutDir: true,
-      target: 'esnext'
+      target: 'esnext',
+      rollupOptions: {
+        input: ['./src/index.html', './src/index_mtg.html']
+      }
     },
     resolve: {
       alias: {
-        "kanvas2d": new URL('../kanvas2d', import.meta.url).pathname
+        kanvas2d: new URL('../kanvas2d', import.meta.url).pathname
       }
     }
   }
