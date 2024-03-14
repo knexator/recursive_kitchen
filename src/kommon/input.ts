@@ -239,15 +239,15 @@ export class Mouse {
         private readonly mouse_listener: MouseListener = new MouseListener(),
     ) { }
 
-    isDown(button: MouseButton): Boolean {
+    isDown(button: MouseButton): boolean {
         return Boolean(this.buttons & button);
     }
 
-    wasPressed(button: MouseButton): Boolean {
+    wasPressed(button: MouseButton): boolean {
         return Boolean(this.buttons & button) && !Boolean(this.prev_buttons & button);
     }
 
-    wasReleased(button: MouseButton): Boolean {
+    wasReleased(button: MouseButton): boolean {
         return !Boolean(this.buttons & button) && Boolean(this.prev_buttons & button);
     }
 

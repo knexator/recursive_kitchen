@@ -69,12 +69,12 @@ class PlacedPlato {
   draw(background_color: string, highlighted_slot_index: { index: number, valid: boolean } | null): void {
     ctx.beginPath();
     ctx.fillStyle = background_color;
-    rect(this.pos, PlacedPlato.size);
+    drawRect(this.pos, PlacedPlato.size);
     ctx.fill();
     ctx.stroke();
     this.blueprint.slots.forEach((x, k) => {
       ctx.beginPath();
-      rect(this.pos.add(new Vec2(10 + k * 60, 100)), Vec2.both(40));
+      drawRect(this.pos.add(new Vec2(10 + k * 60, 100)), Vec2.both(40));
       ctx.fillStyle = (highlighted_slot_index !== null && k === highlighted_slot_index.index) ? (highlighted_slot_index.valid ? "cyan" : "gray") : "white";
       ctx.fill();
       ctx.stroke();
@@ -91,7 +91,7 @@ class PlacedPlato {
     });
     ctx.beginPath();
     ctx.fillStyle = palo2hex[this.blueprint.result_color];
-    rect(this.pos.add(new Vec2(10, 10)), new Vec2(160, 30));
+    drawRect(this.pos.add(new Vec2(10, 10)), new Vec2(160, 30));
     ctx.fill();
 
     ctx.textAlign = "left";
@@ -165,6 +165,21 @@ function reset() {
 
 reset();
 
+function button(text: string, top_left: Vec2, size: Vec2, mouse_pos: Vec2, mouse_was_clicked: boolean): boolean {
+  const mouse_inside = inRect(mouse_pos, top_left, size);
+  ctx.fillStyle = mouse_inside ? "orange" : "#BBB";
+  ctx.beginPath();
+  drawRect(top_left, size);
+  ctx.fill();
+  ctx.fillStyle = "black";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  fillText(text, top_left.add(size.scale(.5)));
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  return mouse_inside && mouse_was_clicked;
+}
+
 let last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
@@ -195,9 +210,7 @@ function every_frame(cur_timestamp: number) {
       if (hovered_index === -1) hovered_index = null;
       if (hovered_index === null) {
         interaction_state.grabbed = hovered;
-        // move to top of stack
-        placed_platos = placed_platos.filter(x => x !== interaction_state.grabbed);
-        placed_platos.push(interaction_state.grabbed);
+        toTop(interaction_state.grabbed);
       } else {
         interaction_state.grabbed = hovered.insides[hovered_index]!;
         interaction_state.grabbed.pos = raw_mouse_pos;
@@ -231,7 +244,33 @@ function every_frame(cur_timestamp: number) {
     });
   }
 
+  const mazo_bounds = new Transform(new Vec2(25, 575), PlacedPlato.size.scale(1.5), Vec2.zero, 0);
+  ctx.strokeStyle = "white";
+  ctx.beginPath();
+  drawRect(mazo_bounds.position, mazo_bounds.size);
+  ctx.stroke();
+
+  if (interaction_state.grabbed === null) {
+    if (button("draw", new Vec2(100, 800), new Vec2(100, 50), raw_mouse_pos, input.mouse.wasPressed(MouseButton.Left))) {
+      let next_card = findLast(placed_platos, v => inRect(v.pos, mazo_bounds.position, mazo_bounds.size));
+      if (next_card !== undefined) {
+        let new_pos = next_card.pos.addX(275);
+        while (placed_platos.some(x => new_pos.sub(x.pos).mag() < 100)) {
+          new_pos = new_pos.addX(200);
+        }
+        next_card.pos = new_pos;
+        toTop(next_card);
+      }
+    }
+  }
+
   animation_id = requestAnimationFrame(every_frame);
+}
+
+function toTop(plato: PlacedPlato): void {
+  // move to top of stack
+  placed_platos = placed_platos.filter(x => x !== plato);
+  placed_platos.push(plato);
 }
 
 ////// library stuff
@@ -256,7 +295,7 @@ function drawCircle(center: Vec2, radius: number) {
   ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
 }
 
-function rect(top_left: Vec2, size: Vec2) {
+function drawRect(top_left: Vec2, size: Vec2) {
   ctx.rect(top_left.x, top_left.y, size.x, size.y);
 }
 
