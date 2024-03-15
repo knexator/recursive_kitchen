@@ -17,6 +17,7 @@
   "dependencies": {
     "glpk.js": "^4.0.2",
     "lil-gui": "^0.18.2",
+    "peggy": "^4.0.2",
     "twgl.js": "^5.5.3"
   }
 }
