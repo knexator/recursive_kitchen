@@ -33,41 +33,70 @@ const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
+  band_size: 50,
   reset: reset,
 };
 
 const gui = new GUI();
+gui.add(CONFIG, "band_size", 10, 150);
 gui.add(CONFIG, "reset");
 
 const cards_data: CardData[] = `
 lenteja {legumbre}: 1
 garbanzo {legumbre}: 2
+potaje {plato}: 4 + 1 * {legumbre} + 1 * {carne, pescado, verdura}
+pasta_de_legumbre {pasta}: 0 + 1 * {legumbre}
+guisante {verdura}: 1
 judia_verde {verdura}: 2
 alcachofa {verdura}: 3
-paella {segundo}: 3 + 2 * {caldo} + 0 * {arroz} + 1 * {carne, pescado, verduras}
-cocido {segundo}: 3 + 2 * {caldo} + 0 * {fideo} + 1 * {carne, pescado, verduras}
-caldo_de_bote {caldo, primero}: 1
-caldo {caldo, primero}: 3 + 0 * {carne, pescado, verduras}
+a_la_plancha {plato}: 0 + 1 * {carne, pescado}
+salmon {pescado}: 3
+paella {plato}: 3 + 2 * {caldo} + 0 * {pasta} + 1 * {carne, pescado, verdura}
+caldo_de_bote {caldo, plato}: 1
+caldo {caldo, plato}: 3 + 0 * {carne, pescado, verdura}
 filete {carne}: 5
 pollo {carne}: 3
 carne_mala {carne}: 1
-sofrito {verdura, salsa}: 2 + 1 * {verduras}
-picklear {primero, verduras}: 2 + 1 * {verduras}
-mostazar {primero, carne}: 2 + 1 * {carne}
-croquetas {primero}: 5 + 1 * {segundo}
+sofrito {verdura, salsa}: 2 + 1 * {verdura}
+picklear {plato, verdura}: 2 + 1 * {verdura}
+mostazar {plato, carne}: 2 + 1 * {carne}
+croquetas {plato}: 7 + 0 * {plato}
 salsa_de_bote {salsa}: 1
-salsa {salsa}: 2 + 1 * {verduras}
-macarron {pasta}: 1
-tortellini {pasta}: 3 + 0 * {carne, verduras}
-pasta {segundo}: 1 + 1 * {pasta} + 1 * {salsa}
+salsa {salsa}: 2 + 1 * {verdura}
+macarron {pasta}: 2
+arroz {pasta}: 1
+tortellini {pasta}: 4 + 0 * {carne, verdura}
+pasta {plato}: 1 + 1 * {pasta} + 1 * {salsa}
+pasta {plato}: 1 + 1 * {pasta} + 1 * {salsa}
 `.trim().split('\n').map(parseCardData);
 
+let color_map = new DefaultMap(_ => '#' + (Math.floor(Math.random() * 16777215).toString(16)), new Map<string, string>(Object.entries({
+  verdura: "green",
+  carne: "#ad0000",
+  pescado: "cyan",
+  legumbre: "#7d5648",
+  plato: "#9923fa",
+  pasta: "#fce69d",
+  salsa: "#ffa200",
+  caldo: "#accc5c",
+})));
 function colorFromType(x: CardType): string {
-  return "#ff0000";
+  return color_map.get(x);
+}
+
+function drawBand(types: CardType[], top_left: Vec2, width: number): void {
+  let k = 0;
+  for (let x = 0; x < width; x += CONFIG.band_size) {
+    ctx.beginPath();
+    ctx.fillStyle = colorFromType(types[k % types.length]);
+    drawRect(top_left.addX(x), new Vec2(CONFIG.band_size, 40));
+    ctx.fill();
+    k += 1;
+  }
 }
 
 class PlacedPlato {
-  public size: Vec2 = new Vec2(180, 150);
+  public size: Vec2 = new Vec2(250, 250);
   public insides: (PlacedPlato | null)[];
   constructor(
     public data: CardData,
@@ -94,6 +123,13 @@ class PlacedPlato {
     // return this.insides.findIndex((content, k) => {
     //   return content !== null && inRect(raw_mouse_pos, hovered.pos.add(new Vec2(10 + k * 60, 100)), Vec2.both(40));
     // }) ?? null;
+    // return null;
+
+    for (let k = 0; k < this.data.slots.length; k++) {
+      if (inRect(world_pos, this.pos.addY(100 + 50 * k), new Vec2(this.size.x, 40))) {
+        return k
+      }
+    }
     return null;
   }
 
@@ -102,36 +138,37 @@ class PlacedPlato {
     ctx.fillStyle = background_color;
     drawRect(this.pos, this.size);
     ctx.fill();
-    ctx.stroke();
-    this.data.slots.forEach((x, k) => {
-      ctx.beginPath();
-      drawRect(this.pos.add(new Vec2(10 + k * 60, 100)), Vec2.both(40));
-      ctx.fillStyle = (highlighted_slot_index !== null && k === highlighted_slot_index.index) ? (highlighted_slot_index.valid ? "cyan" : "gray") : "white";
-      ctx.fill();
-      ctx.stroke();
-      ctx.beginPath();
-      // TODO: draw all accepted colors
-      ctx.fillStyle = colorFromType(x.accepted[0]);
-      drawCircle(this.pos.add(new Vec2(30 + k * 60, 71)), 20);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.fillStyle = "black";
-      fillText(x.multiplier.toString(), this.pos.add(new Vec2(21 + k * 60, 82)));
-      if (this.insides[k] !== null) {
-        fillText(this.insides[k]!.score().score.toString().padStart(2), this.pos.add(new Vec2(12 + k * 60, 130)));
-      }
-    });
-    ctx.beginPath();
-    // TODO: draw all result colors
-    ctx.fillStyle = colorFromType(this.data.types[0]);
-    drawRect(this.pos.add(new Vec2(10, 10)), new Vec2(160, 30));
-    ctx.fill();
+
+    drawBand(this.data.types, this.pos, this.size.x);
 
     ctx.textAlign = "left";
     ctx.beginPath();
     ctx.fillStyle = "black";
-    fillText(this.score().score.toString(), this.pos.add(new Vec2(20, 37)));
-    ctx.textAlign = "left";
+    fillText(this.data.name.replace(/_/g, ' '), this.pos.add(new Vec2(20, 30)));
+
+    const score = this.score();
+    ctx.fillStyle = score.is_valid ? "black" : "gray";
+    fillText(`value ${this.score().score}`, this.pos.add(new Vec2(20, 80)));
+    ctx.fill();
+
+    for (let k = 0; k < this.data.slots.length; k++) {
+      const top_left = this.pos.addY(100 + 50 * k);
+      drawBand(this.data.slots[k].accepted, top_left, this.size.x);
+      ctx.fillStyle = (this.insides[k] === null) ? "gray" : "black";
+      fillText(`${this.data.slots[k].multiplier} * ${this.insides[k]?.score().score ?? '?'}`, top_left.addXY(20, 30));
+      if (k === highlighted_slot_index?.index) {
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = highlighted_slot_index!.valid ? "black" : "red";
+        drawRect(top_left, new Vec2(this.size.x, 40));
+        ctx.stroke();
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+      }
+    }
+    ctx.beginPath();
+    drawRect(this.pos, this.size);
+    ctx.stroke();
   }
 }
 
@@ -140,7 +177,11 @@ let placed_platos: PlacedPlato[];
 let interaction_state = { grabbed: null as PlacedPlato | null };
 
 function reset() {
-  placed_platos = fromCount(52, k => new PlacedPlato(randomChoice(cards_data), new Vec2(50 + k, 600 + k)));
+  // placed_platos = fromCount(80, k => new PlacedPlato(randomChoice(cards_data), new Vec2(50 + k, 50 + k)));
+  let asdf = cards_data.concat(cards_data);
+  shuffle(asdf);
+  placed_platos = asdf.map((d, k) => new PlacedPlato(d, new Vec2(50 + k, 50 + k)));
+  // placed_platos = fromCount(80, k => new PlacedPlato(randomChoice(cards_data), new Vec2(50 + k, 50 + k)));
 }
 
 reset();
@@ -221,19 +262,22 @@ function every_frame(cur_timestamp: number) {
     });
   }
 
-  const mazo_bounds = new Transform(new Vec2(25, 575), new Vec2(150, 250), Vec2.zero, 0);
+  const mazo_bounds = new Transform(new Vec2(25, 25), new Vec2(350, 350), Vec2.zero, 0);
   ctx.strokeStyle = "white";
   ctx.beginPath();
   drawRect(mazo_bounds.position, mazo_bounds.size);
   ctx.stroke();
 
   if (interaction_state.grabbed === null) {
-    if (button("draw", new Vec2(100, 800), new Vec2(100, 50), raw_mouse_pos, input.mouse.wasPressed(MouseButton.Left))) {
+    if (button("draw", new Vec2(0, 0), new Vec2(100, 50), raw_mouse_pos, input.mouse.wasPressed(MouseButton.Left))) {
       let next_card = findLast(placed_platos, v => inRect(v.pos, mazo_bounds.position, mazo_bounds.size));
       if (next_card !== undefined) {
-        let new_pos = next_card.pos.addX(275);
+        let new_pos = next_card.pos.addX(325);
         while (placed_platos.some(x => new_pos.sub(x.pos).mag() < 100)) {
-          new_pos = new_pos.addX(200);
+          new_pos = new_pos.addX(250);
+          if (new_pos.x >= canvas_ctx.width * .9) {
+            new_pos = new Vec2(400, new_pos.y + 300);
+          }
         }
         // anims.push(dt => {
         //   return false;

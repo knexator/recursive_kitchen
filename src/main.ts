@@ -208,6 +208,10 @@ function every_frame(cur_timestamp: number) {
   const canvas_rect = canvas_ctx.getBoundingClientRect();
   const raw_mouse_pos = new Vec2(input.mouse.clientX - canvas_rect.left, input.mouse.clientY - canvas_rect.top);
 
+  if (input.keyboard.wasPressed(KeyCode.KeyX)) {
+    window.location.href = './index_mtg.html';
+  }
+
   if (interaction_state.grabbed === null) {
     let hovered: PlacedPlato | null = findLast(placed_platos, plato => inRect(raw_mouse_pos, plato.pos, PlacedPlato.size)) ?? null;
     if (hovered && input.mouse.wasPressed(MouseButton.Left)) {
