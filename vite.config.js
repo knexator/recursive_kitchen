@@ -36,7 +36,7 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
       emptyOutDir: true,
       target: 'esnext',
       rollupOptions: {
-        input: ['./src/index.html', './src/index_mtg.html']
+        input: ['./src/index.html', './src/index_mtg.html', './src/index_v2.html']
       }
     },
     resolve: {

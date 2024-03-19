@@ -15,46 +15,54 @@ const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
-  single_value_ingredients: true,
-  recipes_in_deck: false,
-  unique_recipes: false,
-  three_palos: false,
-  all_multipliers_one: false,
   reset: reset,
-
-  mtg: () => window.location.href = './index_mtg.html',
-  v2: () => window.location.href = './index_v2.html',
 };
 
 const gui = new GUI();
-gui.add(CONFIG, "single_value_ingredients");
-gui.add(CONFIG, "recipes_in_deck");
-gui.add(CONFIG, "unique_recipes");
-gui.add(CONFIG, "three_palos");
-gui.add(CONFIG, "all_multipliers_one");
 gui.add(CONFIG, "reset");
-gui.add(CONFIG, "mtg");
-gui.add(CONFIG, "v2");
 
-type Palo = 'P' | 'C' | 'T' | 'D';
-const palos: Palo[] = ['P', 'C', 'T', 'D'];
-const palo2hex: Record<Palo, string> = {
-  P: "#69D83A",
-  C: "#FC4250",
-  T: "#F4D837",
-  D: "#4CA4F2"
+const card_types_raw = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
+type CardType = typeof card_types_raw[number];
+const card_types: CardType[] = [...card_types_raw];
+
+const color_from_type: Record<CardType, string> = {
+  a: "green",
+  b: "#ad0000",
+  c: "cyan",
+  d: "#7d5648",
+  e: "#9923fa",
+  f: "#fce69d",
+  g: "#ffa200",
+  h: "#accc5c",
 };
+let pattern_from_types = new Map<string, CanvasPattern>();
+
+function patternFromTypes(types: CardType[]): CanvasPattern {
+  let result = pattern_from_types.get(types.join(','));
+  if (result === undefined) {
+    const patternCanvas = document.createElement("canvas");
+    const patternContext = patternCanvas.getContext("2d")!;
+    patternCanvas.width = 100;
+    patternCanvas.height = 100;
+
+    let k = 0;
+    for (let x = 0; x < patternCanvas.width; x += 10) {
+      patternContext.fillStyle = color_from_type[types[k % types.length]];
+      patternContext.fillRect(x, 0, 10, patternCanvas.height);
+      k += 1;
+    }
+    result = ctx.createPattern(patternCanvas, "repeat")!;
+    pattern_from_types.set(types.join(','), result);
+  }
+  return result;
+}
 
 class AbstractPlato {
   constructor(
-    public result_color: Palo,
-    public slots: { color: Palo, scale: number }[],
+    public result_colors: CardType[],
+    public slots: { accepted_colors: CardType[], scale: number }[],
     public base_score: number,
-  ) {
-    if (CONFIG.all_multipliers_one) {
-      this.slots = slots.map(({ color, scale }) => ({ color, scale: 1 }));
-    }
-  }
+  ) { }
 }
 
 class PlacedPlato {
@@ -90,20 +98,18 @@ class PlacedPlato {
       ctx.fill();
       ctx.stroke();
       ctx.beginPath();
-      ctx.fillStyle = palo2hex[x.color];
+      ctx.fillStyle = patternFromTypes(x.accepted_colors);
       drawCircle(this.pos.add(new Vec2(30 + k * 60, 71)), 20);
       ctx.fill();
       ctx.beginPath();
       ctx.fillStyle = "black";
-      if (!CONFIG.all_multipliers_one) {
-        fillText(x.scale.toString(), this.pos.add(new Vec2(21 + k * 60, 82)));
-        if (this.insides[k] !== null) {
-          fillText(this.insides[k]!.score().toString().padStart(2), this.pos.add(new Vec2(12 + k * 60, 130)));
-        }
+      fillText(x.scale.toString(), this.pos.add(new Vec2(21 + k * 60, 82)));
+      if (this.insides[k] !== null) {
+        fillText(this.insides[k]!.score().toString().padStart(2), this.pos.add(new Vec2(12 + k * 60, 130)));
       }
     });
     ctx.beginPath();
-    ctx.fillStyle = palo2hex[this.blueprint.result_color];
+    ctx.fillStyle = patternFromTypes(this.blueprint.result_colors);
     drawRect(this.pos.add(new Vec2(10, 10)), new Vec2(160, 30));
     ctx.fill();
 
@@ -115,6 +121,8 @@ class PlacedPlato {
   }
 }
 
+
+
 let placed_platos: PlacedPlato[];
 
 // var interaction_state: {tag: 'idle'}
@@ -125,53 +133,22 @@ function reset() {
   let base_recipes: AbstractPlato[];
   let complex_recipes: AbstractPlato[];
 
-  let palos2 = CONFIG.three_palos ? palos.slice(1) : palos;
+  base_recipes = fromCount(10, _ => new AbstractPlato(
+    fromCount(randomInt(1, 3), _ => randomChoice(card_types)), [], randomInt(1, 6)));
 
-  if (CONFIG.single_value_ingredients) {
-    base_recipes = palos2.map(p => new AbstractPlato(p, [], 1));
-  } else {
-    base_recipes = palos2.flatMap(p => fromCount(4, k => new AbstractPlato(p, [], k + 1)));
-  }
-  complex_recipes = CONFIG.unique_recipes
-    ? fromCount(12, _ => new AbstractPlato(randomChoice(palos2), fromCount(3, _ => ({ color: randomChoice(palos2), scale: randomInt(1, 4) })), 1))
-    : (() => {
-      let cards = fromCount(12, k => ({ color: palos2[k % palos2.length], scale: 1 + Math.floor(k / 4) }));
-      cards = shuffle(cards);
-      let result: AbstractPlato[] = [];
-      for (let k = 0; k < 4; k++) {
-        result.push(new AbstractPlato(palos2[k % palos2.length], [cards[3 * k], cards[3 * k + 1], cards[3 * k + 2]], 1));
-      }
-      return result;
-    })();
+  complex_recipes = fromCount(15, _ => new AbstractPlato(
+    fromCount(randomInt(1, 4), _ => randomChoice(card_types)),
+    fromCount(randomInt(1, 4), _ => ({
+      accepted_colors: fromCount(randomInt(1, 4), _ => randomChoice(card_types)),
+      scale: randomInt(0, 3)
+    })),
+    randomInt(0, 6))
+  );
 
-  let mazo: PlacedPlato[];
-  if (CONFIG.single_value_ingredients) {
-    mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(base_recipes[k % base_recipes.length], Vec2.zero));
-  } else {
-    mazo = fromCount(52 - 12 - 12, k => new PlacedPlato(randomChoice(base_recipes), new Vec2(50 + k, 600 + k)));
-  }
-  if (CONFIG.recipes_in_deck) {
-    if (CONFIG.unique_recipes) {
-      mazo = mazo.concat(complex_recipes.map(x => new PlacedPlato(x, Vec2.zero)));
-    } else {
-      mazo = mazo.concat(complex_recipes.flatMap(x => fromCount(3, _ => new PlacedPlato(x, Vec2.zero))));
-    }
-  }
-  mazo = shuffle(mazo);
-  mazo.forEach((c, k) => {
-    c.pos = new Vec2(50 + k, 600 + k);
-  });
-  if (CONFIG.recipes_in_deck) {
-    placed_platos = mazo;
-  } else {
-    if (CONFIG.unique_recipes) {
-      placed_platos = complex_recipes.map((x, k) => new PlacedPlato(x, new Vec2(100 + (k % 4) * (PlacedPlato.size.x + 20), 50 + Math.floor(k / 4) * (PlacedPlato.size.y + 20))))
-        .concat(mazo);
-    } else {
-      placed_platos = complex_recipes.flatMap((x, i) => fromCount(3, j => new PlacedPlato(x, new Vec2(100 + i * (PlacedPlato.size.x + 20), 50 + j * (PlacedPlato.size.y + 20)))))
-        .concat(mazo);
-    }
-  }
+  let recipes = base_recipes.concat(complex_recipes);
+  recipes = recipes.concat(recipes);
+  shuffle(recipes);
+  placed_platos = recipes.map((r, k) => new PlacedPlato(r, new Vec2(50 + k, 600 + k)));
 
   interaction_state = { grabbed: null };
 }
@@ -213,6 +190,10 @@ function every_frame(cur_timestamp: number) {
   const canvas_rect = canvas_ctx.getBoundingClientRect();
   const raw_mouse_pos = new Vec2(input.mouse.clientX - canvas_rect.left, input.mouse.clientY - canvas_rect.top);
 
+  if (input.keyboard.wasPressed(KeyCode.KeyX)) {
+    window.location.href = './index_mtg.html';
+  }
+
   if (interaction_state.grabbed === null) {
     let hovered: PlacedPlato | null = findLast(placed_platos, plato => inRect(raw_mouse_pos, plato.pos, PlacedPlato.size)) ?? null;
     if (hovered && input.mouse.wasPressed(MouseButton.Left)) {
@@ -246,7 +227,7 @@ function every_frame(cur_timestamp: number) {
       return hovered.insides[k] === null && inRect(raw_mouse_pos, hovered.pos.add(new Vec2(10 + k * 60, 100)), Vec2.both(40));
     }) ?? null;
     if (hovered_index === -1) hovered_index = null;
-    let valid_index = (hovered !== null) && (hovered_index !== null) && (hovered.insides[hovered_index] === null) && (hovered.blueprint.slots[hovered_index].color === interaction_state.grabbed.blueprint.result_color);
+    let valid_index = (hovered !== null) && (hovered_index !== null) && (hovered.insides[hovered_index] === null) && (hovered.blueprint.slots[hovered_index].accepted_colors.some(x => interaction_state.grabbed!.blueprint.result_colors.includes(x)));
     if (!input.mouse.isDown(MouseButton.Left)) {
       if (hovered !== null && hovered_index !== null && valid_index) {
         hovered.insides[hovered_index] = interaction_state.grabbed;
@@ -273,6 +254,9 @@ function every_frame(cur_timestamp: number) {
         let new_pos = next_card.pos.addX(275);
         while (placed_platos.some(x => new_pos.sub(x.pos).mag() < 100)) {
           new_pos = new_pos.addX(200);
+          if (new_pos.x + PlacedPlato.size.x >= canvas_ctx.width) {
+            new_pos = new Vec2(350, new_pos.y - 200);
+          }
         }
         // anims.push(dt => {
         //   return false;
